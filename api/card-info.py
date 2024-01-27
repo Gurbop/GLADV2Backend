@@ -35,28 +35,28 @@ class ClashRoyaleCard:
         """
 
 # Example Clash Royale Cards
-electric_sparkler = ClashRoyaleCard(
-    name="Electric Sparkler",
+electro_dragon = ClashRoyaleCard(
+    name="Electro Dragon",
     rarity="Epic",
-    elixir_cost=4,
-    description="A dazzling card that electrifies the battlefield. Click on the card to reveal its shocking secrets!",
-    hitpoints=800,
-    damage=120,
-    attack_speed=1.5,
+    elixir_cost=5,
+    description="Spawns a shocking bolt of lightning when defeated. This flying unit can chain damage to multiple troops at once!",
+    hitpoints=1065,
+    damage=159,
+    attack_speed=2.1,
     targets="Ground and Air",
-    range=4.5
+    range=3.5
 )
 
 fireball_blaster = ClashRoyaleCard(
-    name="Fireball Blaster",
+    name="Fireball",
     rarity="Rare",
-    elixir_cost=3,
-    description="Launches fireballs with explosive force. Handle with care!",
-    hitpoints=600,
-    damage=180,
-    attack_speed=2.0,
+    elixir_cost=4,
+    description="An explosive cocktail of fire that deals area damage. Reduced damage to Crown Towers.",
+    hitpoints=325,
+    damage=130,
+    attack_speed=0,  # Adjust the attack speed based on actual data
     targets="Ground",
-    range=5.0
+    range=2.5  # Adjust the range based on actual data
 )
 
 # Add more cards as needed
