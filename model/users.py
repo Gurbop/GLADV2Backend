@@ -71,7 +71,6 @@ class Post(db.Model):
 # -- c.) SQLAlchemy ORM is layer on top of SQLAlchemy Core, then SQLAlchemy engine, SQL
 class User(db.Model):
     __tablename__ = 'users'  # table name is plural, class name is singular
-
     # Define the User schema with "vars" from object
     id = db.Column(db.Integer, primary_key=True)
     _name = db.Column(db.String(255), unique=False, nullable=False)
@@ -175,7 +174,7 @@ class User(db.Model):
 
     # CRUD update: updates user name, password, phone
     # returns self
-    def update(self, name="", uid="", password=""):
+    def update(self, name="", uid="", password="", dob=''):
         """only updates values with length"""
         if len(name) > 0:
             self.name = name
@@ -183,6 +182,8 @@ class User(db.Model):
             self.uid = uid
         if len(password) > 0:
             self.set_password(password)
+        if dob:
+            self.dob = dob
         db.session.commit()
         return self
 
@@ -222,4 +223,3 @@ def initUsers():
                 '''fails with bad or duplicate data'''
                 db.session.remove()
                 print(f"Records exist, duplicate email, or error: {user.uid}")
-            
