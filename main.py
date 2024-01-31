@@ -59,7 +59,7 @@ def generate_data():
 
 # Register the custom command group with the Flask application
 app.cli.add_command(custom_cli)
-@app.before_first_request
+@app.before_request
 def activate_job():
     initUsers()
         
