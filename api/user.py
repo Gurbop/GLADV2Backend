@@ -1,124 +1,109 @@
-import json, jwt
-from flask import Blueprint, request, jsonify, current_app, Response
-from flask_restful import Api, Resource # used for REST API building
+import json
+import jwt
 from datetime import datetime
-from auth_middleware import token_required
+from flask import Flask, Blueprint, request, jsonify, current_app, Response
+from flask_sqlalchemy import SQLAlchemy
+from flask_restful import Api, Resource
+from werkzeug.security import generate_password_hash, check_password_hash
+from sqlalchemy.exc import IntegrityError
+import os
 
-from model.users import User
+# Initialize Flask App
+app = Flask(__name__)
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///mydatabase.db'
+app.config['SECRET_KEY'] = '09f26e402586e2faa8da4c98a35f1b20d6b033c60'
 
-user_api = Blueprint('user_api', __name__,
-                   url_prefix='/api/users')
+db = SQLAlchemy(app)
 
-# API docs https://flask-restful.readthedocs.io/en/latest/api.html
+# User model
+class User(db.Model):
+    __tablename__ = 'users'
+    id = db.Column(db.Integer, primary_key=True)
+    _name = db.Column(db.String(255), unique=False, nullable=False)
+    _uid = db.Column(db.String(255), unique=True, nullable=False)
+    _password = db.Column(db.String(255), unique=False, nullable=False)
+    _dob = db.Column(db.Date)
+    _role = db.Column(db.String(20), default="User", nullable=False)
+
+    def __init__(self, name, uid, password, dob, role="User"):
+        self._name = name
+        self._uid = uid
+        self._password = generate_password_hash(password)
+        self._dob = dob
+        self._role = role
+
+    def check_password(self, password):
+        return check_password_hash(self._password, password)
+
+    def as_dict(self):
+        return {
+            "id": self.id,
+            "name": self._name,
+            "uid": self._uid,
+            "dob": self._dob.strftime("%Y-%m-%d") if self._dob else None,
+            "role": self._role
+        }
+
+# Blueprint for user routes
+user_api = Blueprint('user_api', __name__, url_prefix='/api/users')
 api = Api(user_api)
 
-class UserAPI:        
-    class _CRUD(Resource):  # User API operation for Create, Read.  THe Update, Delete methods need to be implemeented
-        @token_required
-        def post(self, current_user): # Create method
-            ''' Read data for json body '''
-            body = request.get_json()
-            
-            ''' Avoid garbage in, error checking '''
-            # validate name
-            name = body.get('name')
-            if name is None or len(name) < 2:
-                return {'message': f'Name is missing, or is less than 2 characters'}, 400
-            # validate uid
-            uid = body.get('uid')
-            if uid is None or len(uid) < 2:
-                return {'message': f'User ID is missing, or is less than 2 characters'}, 400
-            # look for password and dob
-            password = body.get('password')
-            dob = body.get('dob')
+# User CRUD class
+class _CRUD(Resource):
+    def post(self): 
+        body = request.get_json()
+        name = body.get('name')
+        uid = body.get('uid')
+        password = body.get('password')
+        dob = body.get('dob', '')
+        role = body.get('role', 'User')
 
-            ''' #1: Key code block, setup USER OBJECT '''
-            uo = User(name=name, 
-                      uid=uid)
-            
-            ''' Additional garbage error checking '''
-            # set password if provided
-            if password is not None:
-                uo.set_password(password)
-            # convert to date type
-            if dob is not None:
-                try:
-                    uo.dob = datetime.strptime(dob, '%Y-%m-%d').date()
-                except:
-                    return {'message': f'Date of birth format error {dob}, must be mm-dd-yyyy'}, 400
-            
-            ''' #2: Key Code block to add user to database '''
-            # create user in database
-            user = uo.create()
-            # success returns json of user
-            if user:
-                return jsonify(user.read())
-            # failure returns error
-            return {'message': f'Processed {name}, either a format error or User ID {uid} is duplicate'}, 400
+        if not all([name, uid, password]):
+            return jsonify({'message': 'Missing required fields'}), 400
 
-        @token_required
-        def get(self, current_user): # Read Method
-            users = User.query.all()    # read/extract all users from database
-            json_ready = [user.read() for user in users]  # prepare output in json
-            return jsonify(json_ready)  # jsonify creates Flask response object, more specific to APIs than json.dumps
-    
-    class _Security(Resource):
-        def post(self):
-            try:
-                body = request.get_json()
-                if not body:
-                    return {
-                        "message": "Please provide user details",
-                        "data": None,
-                        "error": "Bad request"
-                    }, 400
-                ''' Get Data '''
-                uid = body.get('uid')
-                if uid is None:
-                    return {'message': f'User ID is missing'}, 400
-                password = body.get('password')
-                
-                ''' Find user '''
-                user = User.query.filter_by(_uid=uid).first()
-                if user is None or not user.is_password(password):
-                    return {'message': f"Invalid user id or password"}, 400
-                if user:
-                    try:
-                        token = jwt.encode(
-                            {"_uid": user._uid},
-                            current_app.config["SECRET_KEY"],
-                            algorithm="HS256"
-                        )
-                        resp = Response("Authentication for %s successful" % (user._uid))
-                        resp.set_cookie("jwt", token,
-                                max_age=3600,
-                                secure=True,
-                                httponly=True,
-                                path='/',
-                                samesite='None'  # This is the key part for cross-site requests
+        try:
+            dob_parsed = datetime.strptime(dob, '%Y-%m-%d').date() if dob else None
+            user = User(name=name, uid=uid, password=password, dob=dob_parsed, role=role)
+            db.session.add(user)
+            db.session.commit()
+            return jsonify(user.as_dict()), 201
 
-                                # domain="frontend.com"
-                                )
-                        return resp
-                    except Exception as e:
-                        return {
-                            "error": "Something went wrong",
-                            "message": str(e)
-                        }, 500
-                return {
-                    "message": "Error fetching auth token!",
-                    "data": None,
-                    "error": "Unauthorized"
-                }, 404
-            except Exception as e:
-                return {
-                        "message": "Something went wrong!",
-                        "error": str(e),
-                        "data": None
-                }, 500
+        except IntegrityError:
+            db.session.rollback()
+            return jsonify({'message': 'User already exists'}), 409
+        except Exception as e:
+            return jsonify({'message': str(e)}), 500
 
-            
-    # building RESTapi endpoint
-    api.add_resource(_CRUD, '/')
-    api.add_resource(_Security, '/authenticate')
-    # so
+    def get(self):
+        users = User.query.all()
+        return jsonify([user.as_dict() for user in users]), 200
+
+# User Security class
+class _Security(Resource):
+    def post(self):
+        body = request.get_json()
+        uid = body.get('uid')
+        password = body.get('password')
+
+        user = User.query.filter_by(_uid=uid).first()
+        if user and user.check_password(password):
+            token = jwt.encode({"_uid": user._uid}, app.config["SECRET_KEY"], algorithm="HS256")
+            return jsonify({"token": token}), 200
+        else:
+            return jsonify({"message": "Invalid credentials"}), 401
+
+# Add resources to the API
+api.add_resource(_CRUD, '/')
+api.add_resource(_Security, '/authenticate')
+
+# Register Blueprint
+app.register_blueprint(user_api)
+
+# Database initialization
+@app.before_first_request
+def initialize_database():
+    db.create_all()
+
+# Run the Flask app
+if __name__ == "__main__":
+    app.run(debug=True)
