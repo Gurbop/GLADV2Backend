@@ -1,117 +1,149 @@
-import os
-import base64
-import json
-from datetime import date
-from random import randrange
-from flask import Flask, current_app
-from flask_sqlalchemy import SQLAlchemy
-from werkzeug.security import generate_password_hash, check_password_hash
-from sqlalchemy.exc import IntegrityError
+import json, jwt
+from flask import Blueprint, request, jsonify, current_app, Response
+from flask_restful import Api, Resource # used for REST API building
+from datetime import datetime
+from auth_middleware import token_required
 
-# Initialize Flask App
-app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///mydatabase.db'  # SQLite database
-app.config['SECRET_KEY'] = '09f26e402586e2faa8da4c98a35f1b20d6b033c60'  # Random secret key
-app.config['UPLOAD_FOLDER'] = './uploads'  # Upload folder for images
+from model.users import User
 
-db = SQLAlchemy(app)
+user_api = Blueprint('user_api', __name__,
+                   url_prefix='/api/users')
 
-class Post(db.Model):
-    __tablename__ = 'posts'
-    id = db.Column(db.Integer, primary_key=True)
-    note = db.Column(db.Text, nullable=False)
-    image = db.Column(db.String, nullable=True)
-    userID = db.Column(db.Integer, db.ForeignKey('users.id'))
+# API docs https://flask-restful.readthedocs.io/en/latest/api.html
+api = Api(user_api)
 
-    def __init__(self, user_id, note, image=None):
-        self.userID = user_id
-        self.note = note
-        self.image = image
+class UserAPI:        
+    class _CRUD(Resource):  # User API operation for Create, Read.  THe Update, Delete methods need to be implemeented
+        @token_required
+        def post(self, current_user): # Create method
+            ''' Read data for json body '''
+            body = request.get_json()
+            
+            ''' Avoid garbage in, error checking '''
+            # validate name
+            name = body.get('name')
+            if name is None or len(name) < 2:
+                return {'message': f'Name is missing, or is less than 2 characters'}, 400
+            # validate uid
+            uid = body.get('uid')
+            if uid is None or len(uid) < 2:
+                return {'message': f'User ID is missing, or is less than 2 characters'}, 400
+            # look for password and dob
+            password = body.get('password')
+            dob = body.get('dob')
+            ClashRoyaleID = body.get('ClashRoyaleID')
+            ''' #1: Key code block, setup USER OBJECT '''
+            uo = User(name=name, uid=uid, ClashRoyaleID=ClashRoyaleID)
+            
+            ''' Additional garbage error checking '''
+            # set password if provided
+            if password is not None:
+                uo.set_password(password)
+            # convert to date type
+            if dob is not None:
+                try:
+                    uo.dob = datetime.strptime(dob, '%Y-%m-%d').date()
+                except:
+                    return {'message': f'Date of birth format error {dob}, must be mm-dd-yyyy'}, 400
+            ''' #2: Key Code block to add user to database '''
+            # create user in database
+            user = uo.create()
+            # success returns json of user
+            if user:
+                return jsonify(user.read())
+            # failure returns error
+            return {'message': f'Processed {name}, either a format error or User ID {uid} is duplicate'}, 400
 
-    def __repr__(self):
-        return f"<Post {self.id}>"
-
-    def create(self):
-        try:
-            db.session.add(self)
-            db.session.commit()
-            return self
-        except IntegrityError:
-            db.session.rollback()
-            return None
-
-    def read(self):
-        upload_folder = app.config['UPLOAD_FOLDER']
-        image_path = os.path.join(upload_folder, self.image) if self.image else None
-        image_data = None
-        if image_path and os.path.isfile(image_path):
-            with open(image_path, 'rb') as file:
-                image_data = base64.b64encode(file.read()).decode('utf-8')
-        return {
-            "id": self.id,
-            "userID": self.userID,
-            "note": self.note,
-            "image": self.image,
-            "base64": image_data
-        }
-
-class User(db.Model):
-    __tablename__ = 'users'
-    id = db.Column(db.Integer, primary_key=True)
-    _name = db.Column(db.String(255), nullable=False)
-    _uid = db.Column(db.String(255), unique=True, nullable=False)
-    _password = db.Column(db.String(255), nullable=False)
-    _dob = db.Column(db.Date, nullable=True)
-    _role = db.Column(db.String(20), default="User", nullable=False)
+        @token_required
+        def get(self, current_user): # Read Method
+            users = User.query.all()    # read/extract all users from database
+            json_ready = [user.read() for user in users]  # prepare output in json
+            return jsonify(json_ready)  # jsonify creates Flask response object, more specific to APIs than json.dumps
+        
+        @token_required
+        def delete(self, current_user):
+            body = request.get_json()
+            uid = body.get('uid')
+            users = User.query.all()
+            for user in users:
+                if user.uid == uid:
+                    user.delete()
+            return jsonify(user.read())
+        
+        @token_required
+        def put(self, current_user):
+            body = request.get_json() # get the body of the request
+            uid = body.get('uid') # get the UID (Know what to reference)
+            dob = body.get('dob')
+            name = body.get('name')
+            ClashRoyaleID = body.get('ClashRoyaleID')
+            if dob is not None:
+                try:
+                    fdob = datetime.strptime(dob, '%Y-%m-%d').date()
+                except:
+                    return {'message': f'Date of birth format error {dob}, must be mm-dd-yyyy'}, 400
+            users = User.query.all()
+            for user in users:
+                if user.uid == uid:
+                    user.update(name,'','',fdob,ClashRoyaleID)
+            return f"{user.read()} Updated"
     
-    posts = db.relationship('Post', backref='user', lazy=True)
-
-    def __init__(self, name, uid, password, dob=None, role="User"):
-        self._name = name
-        self._uid = uid
-        self._password = generate_password_hash(password)
-        self._dob = dob
-        self._role = role
-
-    def set_password(self, password):
-        self._password = generate_password_hash(password)
-
-    def check_password(self, password):
-        return check_password_hash(self._password, password)
-
-    def as_dict(self):
-        return {
-            "id": self.id,
-            "name": self._name,
-            "uid": self._uid,
-            "dob": self._dob.isoformat() if self._dob else None,
-            "role": self._role
-        }
-
-    @property
-    def role(self):
-        return self._role
-
-    def is_admin(self):
-        return self._role == "Admin"
-
-def init_users():
-    with app.app_context():
-        db.create_all()
-        # Sample users initialization
-        users = [
-            User(name='Thomas Edison', uid='edison', password='securepassword123', dob=date(1847, 2, 11), role="Admin"),
-            # Add more sample users if needed
-        ]
-        for user in users:
-            db.session.add(user)
-            for i in range(randrange(1, 5)):
-                post = Post(user_id=user.id, note=f'Sample note {i} for {user.name}')
-                db.session.add(post)
+    class _Security(Resource):
+        def post(self):
             try:
-                db.session.commit()
-            except IntegrityError:
-                print(f'Duplicate user or other database error for user: {user._uid}')
-                db.session.rollback()
-if __name__ == '__main__':
-    init_users()
+                body = request.get_json()
+                if not body:
+                    return {
+                        "message": "Please provide user details",
+                        "data": None,
+                        "error": "Bad request"
+                    }, 400
+                ''' Get Data '''
+                uid = body.get('uid')
+                if uid is None:
+                    return {'message': f'User ID is missing'}, 400
+                password = body.get('password')
+                
+                ''' Find user '''
+                user = User.query.filter_by(_uid=uid).first()
+                if user is None or not user.is_password(password):
+                    return {'message': f"Invalid user id or password"}, 400
+                if user:
+                    try:
+                        token = jwt.encode(
+                            {"_uid": user._uid},
+                            current_app.config["SECRET_KEY"],
+                            algorithm="HS256"
+                        )
+                        resp = Response("Authentication for %s successful" % (user._uid))
+                        resp.set_cookie("jwt", token,
+                                max_age=3600,
+                                secure=True,
+                                httponly=True,
+                                path='/',
+                                samesite='None'  # This is the key part for cross-site requests
+
+                                # domain="frontend.com"
+                                )
+                        return resp
+                    except Exception as e:
+                        return {
+                            "error": "Something went wrong",
+                            "message": str(e)
+                        }, 500
+                return {
+                    "message": "Error fetching auth token!",
+                    "data": None,
+                    "error": "Unauthorized"
+                }, 404
+            except Exception as e:
+                return {
+                        "message": "Something went wrong!",
+                        "error": str(e),
+                        "data": None
+                }, 500
+
+            
+    # building RESTapi endpoint
+    api.add_resource(_CRUD, '/')
+    api.add_resource(_Security, '/authenticate')
