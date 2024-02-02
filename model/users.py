@@ -49,18 +49,18 @@ class Post(db.Model):
     # returns dictionary
     def read(self):
         # encode image
-        #path = app.config['UPLOAD_FOLDER']
-        #file = os.path.join(path, self.image)
-        #file_text = open(file, 'rb')
-        #file_read = file_text.read()
-        # file_encode = base64.encodebytes(file_read)
+        path = app.config['UPLOAD_FOLDER']
+        file = os.path.join(path, self.image)
+        file_text = open(file, 'rb')
+        file_read = file_text.read()
+        file_encode = base64.encodebytes(file_read)
         
         return {
             "id": self.id,
             "userID": self.userID,
             "note": self.note,
             "image": self.image,
-            #"base64": str(file_encode)
+            "base64": str(file_encode)
         }
 
 
@@ -78,29 +78,16 @@ class User(db.Model):
     _uid = db.Column(db.String(255), unique=True, nullable=False)
     _password = db.Column(db.String(255), unique=False, nullable=False)
     _dob = db.Column(db.Date)
-    _role = db.Column(db.String(20), default="User", nullable=False)
-
+    
     # Defines a relationship between User record and Notes table, one-to-many (one user to many notes)
     posts = db.relationship("Post", cascade='all, delete', backref='users', lazy=True)
 
     # constructor of a User object, initializes the instance variables within object (self)
-    def __init__(self, name, uid, password="123qwerty", dob=date.today(), role="User"):
+    def __init__(self, name, uid, password="123qwerty", dob=date.today()):
         self._name = name    # variables with self prefix become part of the object, 
         self._uid = uid
         self.set_password(password)
         self._dob = dob
-        self._role = role
-    
-    @property
-    def role(self):
-        return self._role
-
-    @role.setter
-    def role(self, role):
-        self._role = role
-
-    def is_admin(self):
-        return self._role == "Admin"
 
     # a name getter method, extracts name from object
     @property
@@ -144,7 +131,7 @@ class User(db.Model):
     # dob property is returned as string, to avoid unfriendly outcomes
     @property
     def dob(self):
-        dob_string = self._dob.strftime('%Y-%m-%d')
+        dob_string = self._dob.strftime('%m-%d-%Y')
         return dob_string
     
     # dob should be have verification for type date
@@ -161,7 +148,7 @@ class User(db.Model):
     # output content using json dumps, this is ready for API response
     def __str__(self):
         return json.dumps(self.read())
-        #return f"id: {self.id}"
+
     # CRUD create/add a new record to the table
     # returns self or None on error
     def create(self):
@@ -183,7 +170,6 @@ class User(db.Model):
             "uid": self.uid,
             "dob": self.dob,
             "age": self.age,
-            "role": self.role,
             "posts": [post.read() for post in self.posts]
         }
 
@@ -217,7 +203,7 @@ def initUsers():
         """Create database and tables"""
         db.create_all()
         """Tester data for table"""
-        u1 = User(name='Thomas Edison', uid='toby', password='123toby', dob=date(1847, 2, 11), role="Admin")
+        u1 = User(name='Thomas Edison', uid='toby', password='123toby', dob=date(1847, 2, 11))
         u2 = User(name='Nicholas Tesla', uid='niko', password='123niko', dob=date(1856, 7, 10))
         u3 = User(name='Alexander Graham Bell', uid='lex')
         u4 = User(name='Grace Hopper', uid='hop', password='123hop', dob=date(1906, 12, 9))
