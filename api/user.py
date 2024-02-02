@@ -112,7 +112,8 @@ class UserAPI:
                 if user:
                     try:
                         token = jwt.encode(
-                            {"_uid": user._uid},
+                            {"_uid": user._uid,
+                            "_isAdmin": user._admin},
                             current_app.config["SECRET_KEY"],
                             algorithm="HS256"
                         )
