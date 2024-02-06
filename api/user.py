@@ -31,10 +31,10 @@ class UserAPI:
             # look for password and dob
             password = body.get('password')
             dob = body.get('dob')
-            admin = body.get('admin')
+            role = body.get('role')
             ''' #1: Key code block, setup USER OBJECT '''
             uo = User(name=name, 
-                      uid=uid, admin=admin)
+                      uid=uid, role=role)
             
             ''' Additional garbage error checking '''
             # set password if provided
@@ -77,7 +77,7 @@ class UserAPI:
             uid = body.get('uid') # get the UID (Know what to reference)
             dob = body.get('dob')
             name = body.get('name')
-            admin = body.get('admin')
+            role = body.get('role')
             if dob is not None:
                 try:
                     fdob = datetime.strptime(dob, '%Y-%m-%d').date()
@@ -86,7 +86,7 @@ class UserAPI:
             users = User.query.all()
             for user in users:
                 if user.uid == uid:
-                    user.update(name,'','',fdob,admin)
+                    user.update(name,'','',fdob,role)
             return f"{user.read()} Updated"
     
     class _Security(Resource):
@@ -113,7 +113,7 @@ class UserAPI:
                     try:
                         token = jwt.encode(
                             {"_uid": user._uid,
-                            "_isAdmin": user._admin},
+                            "_isrole": user._role},
                             current_app.config["SECRET_KEY"],
                             algorithm="HS256"
                         )

@@ -17,7 +17,7 @@ def token_required(f):
         try:
             data=jwt.decode(token, current_app.config["SECRET_KEY"], algorithms=["HS256"])
             current_user=User.query.filter_by(_uid=data["_uid"]).first()
-            isAdmin = User.query.filter_by(_admin=data["_isAdmin"]).first()
+            isrole = User.query.filter_by(_role=data["_isrole"]).first()
             if current_user is None:
                 return {
                 "message": "Invalid Authentication token!",
