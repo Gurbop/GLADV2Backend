@@ -1,85 +1,69 @@
 import threading
-
-
-# import "packages" from flask
-from flask import render_template,request  # import render_template from "public" flask libraries
+from flask import Flask, render_template, request, jsonify
+from flask_cors import CORS
+from flask_sqlalchemy import SQLAlchemy
 from flask.cli import AppGroup
 
+app = Flask(__name__)
+CORS(app)  # Enable CORS for all routes and methods
 
+# Configure the SQLAlchemy part of the app instance
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///decks.db'  # Use your actual database URI
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
+db = SQLAlchemy(app)  # Initialize the SQLAlchemy db instance
 
-# import "packages" from "this" project
-from __init__ import app, db, cors  # Definitions initialization
+# New Deck model
+class Deck(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(80), unique=True, nullable=False)
+    cards = db.Column(db.String(255), nullable=False)  # Storing card IDs in a comma-separated string
 
+    def __repr__(self):
+        return f'<Deck {self.name}>'
 
+@app.route('/save_deck', methods=['POST'])
+def save_deck():
+    data = request.json
+    deck_name = data.get('name')
+    cards = ','.join(map(str, data.get('cards')))  # Convert card IDs list to a comma-separated string
 
+    if not deck_name or not cards:
+        return jsonify({'error': 'Deck name and card IDs are required'}), 400
 
-# setup APIs
-from api.user import user_api # Blueprint import api definition
-from api.player import player_api
-# database migrations
-from model.users import initUsers
-from model.players import initPlayers
+    new_deck = Deck(name=deck_name, cards=cards)
+    db.session.add(new_deck)
+    db.session.commit()
 
-
-# setup App pages
-from projects.projects import app_projects # Blueprint directory import projects definition
-
-
-
-
-# Initialize the SQLAlchemy object to work with the Flask app instance
-db.init_app(app)
-
-
-# register URIs
-app.register_blueprint(user_api) # register api routes
-app.register_blueprint(player_api)
-app.register_blueprint(app_projects) # register app pages
-
+    return jsonify({'message': 'Deck saved successfully'}), 201
 
 @app.errorhandler(404)  # catch for URL not found
 def page_not_found(e):
-   # note that we set the 404 status explicitly
-   return render_template('404.html'), 404
+    return render_template('404.html'), 404
 
-
-@app.route('/')  # connects default URL to index() function
+@app.route('/')  # connects default URL to render index() function
 def index():
-   return render_template("index.html")
+    return render_template("index.html")
 
-
-@app.route('/table/')  # connects /stub/ URL to stub() function
+@app.route('/table/')  # connects /table/ URL to render table() function
 def table():
-   return render_template("table.html")
-
-
-@app.before_request
-def before_request():
-   # Check if the request came from a specific origin
-   allowed_origin = request.headers.get('Origin')
-   if allowed_origin in ['http://localhost:4100', 'http://127.0.0.1:4100', 'https://nighthawkcoders.github.io']:
-       cors._origins = allowed_origin
-
+    return render_template("table.html")
 
 # Create an AppGroup for custom commands
 custom_cli = AppGroup('custom', help='Custom commands')
 
-
 # Define a command to generate data
 @custom_cli.command('generate_data')
 def generate_data():
-   initUsers()
-   initPlayers()
-
+    # Generate data here (This function should be defined or imported)
+    pass
 
 # Register the custom command group with the Flask application
 app.cli.add_command(custom_cli)
-# @app.before_first_request
-def activate_job():
-   initUsers()
-      
+
+with app.app_context():
+    db.create_all()  # Create tables
+
 # this runs the application on the development server
 if __name__ == "__main__":
-   # change name for testing
-   app.run(debug=True, host="0.0.0.0", port="8086")
+    app.run(debug=True, host="0.0.0.0", port="8086")
