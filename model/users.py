@@ -3,7 +3,7 @@ from random import randrange
 from datetime import date
 import os, base64
 import json
-
+from .clashroyal import ClashRoyaleCard, Collection
 from __init__ import app, db
 from sqlalchemy.exc import IntegrityError
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -71,24 +71,37 @@ class Post(db.Model):
 # -- c.) SQLAlchemy ORM is layer on top of SQLAlchemy Core, then SQLAlchemy engine, SQL
 class User(db.Model):
     __tablename__ = 'users'  # table name is plural, class name is singular
+
     # Define the User schema with "vars" from object
     id = db.Column(db.Integer, primary_key=True)
     _name = db.Column(db.String(255), unique=False, nullable=False)
     _uid = db.Column(db.String(255), unique=True, nullable=False)
     _password = db.Column(db.String(255), unique=False, nullable=False)
     _dob = db.Column(db.Date)
-    _role = db.Column(db.String(255), unique=False, nullable=False)
+    _role = db.Column(db.String(20), default="User", nullable=False)
+    collections = db.relationship('Collection', backref='Account', uselist=True, lazy='dynamic')
     
     # Defines a relationship between User record and Notes table, one-to-many (one user to many notes)
     posts = db.relationship("Post", cascade='all, delete', backref='users', lazy=True)
 
     # constructor of a User object, initializes the instance variables within object (self)
-    def __init__(self, name, uid, password="123qwerty", dob=date.today(), role='User'):
+    def __init__(self, name, uid, password="123qwerty", dob=date.today(), role="User"):
         self._name = name    # variables with self prefix become part of the object, 
         self._uid = uid
         self.set_password(password)
         self._dob = dob
         self._role = role
+
+    @property
+    def role(self):
+        return self._role
+
+    @role.setter
+    def role(self, role):
+        self._role = role
+
+    def is_admin(self):
+        return self._role == "Admin"
 
     # a name getter method, extracts name from object
     @property
@@ -144,15 +157,6 @@ class User(db.Model):
     def age(self):
         today = date.today()
         return today.year - self._dob.year - ((today.month, today.day) < (self._dob.month, self._dob.day))
-
-    @property
-    def role(self):
-        return self._role
-    
-    # a setter function, allows name to be updated after initial object creation
-    @role.setter
-    def role(self, role):
-        self._role = role
     
     # output content using str(object) in human readable form, uses getter
     # output content using json dumps, this is ready for API response
@@ -180,13 +184,13 @@ class User(db.Model):
             "uid": self.uid,
             "dob": self.dob,
             "age": self.age,
-            "posts": [post.read() for post in self.posts],
-            "role": self.role
+            "role": self.role,
+            "posts": [post.read() for post in self.posts]
         }
 
     # CRUD update: updates user name, password, phone
     # returns self
-    def update(self, name="", uid="", password="", dob='', role=''):
+    def update(self, name="", uid="", password=""):
         """only updates values with length"""
         if len(name) > 0:
             self.name = name
@@ -194,10 +198,6 @@ class User(db.Model):
             self.uid = uid
         if len(password) > 0:
             self.set_password(password)
-        if dob:
-            self.dob = dob
-        if len(role) > 0:
-            self.role = role
         db.session.commit()
         return self
 
@@ -214,12 +214,13 @@ class User(db.Model):
 
 # Builds working data for testing
 def initUsers():
+    print("HI i am in initUsers")
     with app.app_context():
         """Create database and tables"""
         db.create_all()
         """Tester data for table"""
-        u1 = User(name='Thomas Edison', uid='toby', password='123toby', dob=date(1847, 2, 11), role='Admin')
-        u2 = User(name='Hog Rider', uid='Hog', password='Hog', dob=date(1856, 7, 10), role='Admin')
+        u1 = User(name='Thomas Edison', uid='toby', password='123toby', dob=date(1847, 2, 11), role="Admin")
+        u2 = User(name='Nicholas Tesla', uid='niko', password='123niko', dob=date(1856, 7, 10))
         u3 = User(name='Alexander Graham Bell', uid='lex')
         u4 = User(name='Grace Hopper', uid='hop', password='123hop', dob=date(1906, 12, 9))
         users = [u1, u2, u3, u4]
@@ -237,3 +238,4 @@ def initUsers():
                 '''fails with bad or duplicate data'''
                 db.session.remove()
                 print(f"Records exist, duplicate email, or error: {user.uid}")
+            

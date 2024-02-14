@@ -2,6 +2,8 @@ version: '3'
 services:
         web:
                 image: cpt_v1
+                environment:
+                        - CRYPTO_KEY=${CRYPTO_KEY}
                 build: .
                 ports:
                         - "8086:8086"

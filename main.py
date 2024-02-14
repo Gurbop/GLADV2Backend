@@ -1,68 +1,100 @@
-import threading
-from flask import Flask, render_template, request, jsonify
-from flask_cors import CORS
-from flask_sqlalchemy import SQLAlchemy
+# import threading
+
+# import "packages" from flask
+# import render_template from "public" flask libraries
+from flask import render_template, request
 from flask.cli import AppGroup
 
-app = Flask(__name__)
-CORS(app)  # Enable CORS for all routes and methods
+     
+# import "packages" from "this" project
+# from __init__ import app, db, cors  # Definitions initializatio
+from __init__ import app, db, cors
 
-# Configure the SQLAlchemy part of the app instance
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///decks.db'  # Use your actual database URI
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-db = SQLAlchemy(app)  # Initialize the SQLAlchemy db instance
+# setup APIs
+from api.user import user_api  # Blueprint import api definition
+from api.clashRoyal import cards_api
+from api.player import player_api
+# database migrations
+from model.users import initUsers
+from model.players import initPlayers
+from model.clashroyal import initCards
 
-# New Deck model
-class Deck(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(80), unique=True, nullable=False)
-    cards = db.Column(db.String(255), nullable=False)  # Storing card IDs in a comma-separated string
+# setup App pages
+# Blueprint directory import projects definition
+from projects.projects import app_projects
 
-    def __repr__(self):
-        return f'<Deck {self.name}>'
+# Initialize the SQLAlchemy object to work with the Flask app instance
+db.init_app(app)
 
-@app.route('/save_deck', methods=['POST'])
-def save_deck():
-    data = request.json
-    deck_name = data.get('name')
-    cards = ','.join(map(str, data.get('cards')))  # Convert card IDs list to a comma-separated string
+# register URIs
+app.register_blueprint(user_api)  # register api routes
+app.register_blueprint(player_api)
+app.register_blueprint(app_projects)  # register app pages
+app.register_blueprint(cards_api)
 
-    if not deck_name or not cards:
-        return jsonify({'error': 'Deck name and card IDs are required'}), 400
-
-    new_deck = Deck(name=deck_name, cards=cards)
-    db.session.add(new_deck)
-    db.session.commit()
-
-    return jsonify({'message': 'Deck saved successfully'}), 201
+initCards()
+initUsers()
 
 @app.errorhandler(404)  # catch for URL not found
 def page_not_found(e):
+    # note that we set the 404 status explicitly
     return render_template('404.html'), 404
 
-@app.route('/')  # connects default URL to render index() function
+
+@app.route('/')  # connects default URL to index() function
 def index():
     return render_template("index.html")
 
-@app.route('/table/')  # connects /table/ URL to render table() function
+
+@app.route('/table/')  # connects /stub/ URL to stub() function
 def table():
     return render_template("table.html")
+
+'''@app.before_first_request
+def activate_job():  # activate these items 
+    initCards()
+    initUsers()'''
+
+'''
+@app.before_request
+def before_request():
+    allowed_origin = request.headers.get('Origin')
+    if allowed_origin in ['http://localhost:4100', 'http://127.0.0.1:4100', 'https://nighthawkcoders.github.io', 'https://real-estate-analyzation.github.io']:
+        cors._origins = allowed_origin
+    
+
+@app.after_request
+def after_request(response):
+    #response.headers.add('Access-Control-Allow-Origin', 'http://localhost:8080')
+    #allowed_origins = ['http://localhost:8080', 'http://localhost:4200', 'http://127.0.0.1:4200', 'https://nighthawkcoders.github.io', 'https://real-estate-analyzation.github.io']
+
+    #origin = request.headers.get('Origin')
+    #if origin and origin in allowed_origins:
+    #    response.headers.add('Access-Control-Allow-Origin', origin)
+
+    response.headers.add('Access-Control-Allow-Origin', request.headers.get('Origin'))
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+    response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
+    response.headers.add('Access-Control-Allow-Credentials', 'true')
+    return response
+'''
 
 # Create an AppGroup for custom commands
 custom_cli = AppGroup('custom', help='Custom commands')
 
 # Define a command to generate data
+
+
 @custom_cli.command('generate_data')
 def generate_data():
-    # Generate data here (This function should be defined or imported)
-    pass
+    initUsers()
+    initCards()
+    initPlayers()
+
 
 # Register the custom command group with the Flask application
 app.cli.add_command(custom_cli)
-
-with app.app_context():
-    db.create_all()  # Create tables
 
 # this runs the application on the development server
 if __name__ == "__main__":

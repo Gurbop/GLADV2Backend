@@ -3,8 +3,12 @@ from flask import Blueprint, request, jsonify, current_app, Response
 from flask_restful import Api, Resource # used for REST API building
 from datetime import datetime
 from auth_middleware import token_required
+from flask_login import login_user, current_user, logout_user, LoginManager, UserMixin
 
 from model.users import User
+
+from pprint import pprint
+import inspect
 
 user_api = Blueprint('user_api', __name__,
                    url_prefix='/api/users')
@@ -12,10 +16,20 @@ user_api = Blueprint('user_api', __name__,
 # API docs https://flask-restful.readthedocs.io/en/latest/api.html
 api = Api(user_api)
 
+class AllUsersAPI(Resource):
+    
+    @token_required
+    def get(self, current_user): 
+        uid = request.headers.get('uid')
+        print(uid)
+        users = User.query.all()    # read/extract all users from database
+        json_ready = [user.read() for user in users]  # prepare output in json
+        return jsonify(json_ready)  # jsonify creates Flask response object, more specific to APIs than json.dumps
+
 class UserAPI:        
     class _CRUD(Resource):  # User API operation for Create, Read.  THe Update, Delete methods need to be implemeented
-        @token_required
-        def post(self, current_user):
+
+        def post(self): # Create method
             ''' Read data for json body '''
             body = request.get_json()
             
@@ -31,10 +45,10 @@ class UserAPI:
             # look for password and dob
             password = body.get('password')
             dob = body.get('dob')
-            role = body.get('role')
+
             ''' #1: Key code block, setup USER OBJECT '''
             uo = User(name=name, 
-                      uid=uid, role=role)
+                      uid=uid)
             
             ''' Additional garbage error checking '''
             # set password if provided
@@ -46,13 +60,17 @@ class UserAPI:
                     uo.dob = datetime.strptime(dob, '%Y-%m-%d').date()
                 except:
                     return {'message': f'Date of birth format error {dob}, must be mm-dd-yyyy'}, 400
-        @token_required(_role=["Admin","User"])
-        def get(self, current_user): # Read Method
-            users = User.query.all()    # read/extract all users from database
-            json_ready = [user.read() for user in users]  # prepare output in json
-            return jsonify(json_ready)  # jsonify creates Flask response object, more specific to APIs than json.dumps
-        
-        @token_required(_role=["Admin","User"])
+            
+            ''' #2: Key Code block to add user to database '''
+            # create user in database
+            user = uo.create()
+            # success returns json of user
+            if user:
+                return jsonify(user.read())
+            # failure returns error
+            return {'message': f'Processed {name}, either a format error or User ID {uid} is duplicate'}, 400
+
+        @token_required
         def delete(self, current_user):
             body = request.get_json()
             uid = body.get('uid')
@@ -62,21 +80,45 @@ class UserAPI:
                     user.delete()
             return jsonify(user.read())
 
-        @token_required(_role=["Admin"])
-        def put(self, current_user):
-            body = request.get_json() # get the body of the request
-            uid = body.get('uid') # get the UID (Know what to reference)
-            dob = body.get('dob')
-            name = body.get('name')
-            if dob is not None:
+        @token_required
+        def put(self, current_user):  # Update method
+            uid = request.headers.get('uid')
+            print(uid)
+            body = request.get_json()
+
+            user = User.query.filter_by(_uid=uid).first()
+
+            if user is None:
+                return {'message': 'User not found'}, 404
+            else:
+                print("User Found")
+
+            # Update user attributes if provided
+            if 'name' in body:
+                user.name = body['name']
+            if 'password' in body:
+                user.set_password(body['password'])
+            if 'dob' in body:
                 try:
-                    fdob = datetime.strptime(dob, '%Y-%m-%d').date()
-                except:
-                    return {'message': f'Date of birth format error {dob}, must be mm-dd-yyyy'}, 400
-            users = User.query.all()
-            for user in users:
-                if user.uid == uid:
-                    return f"{user.read()} Updated"
+                    user.dob = datetime.strptime(body['dob'], '%Y-%m-%d').date()
+                except ValueError:
+                    return {'message': 'Invalid date format. Date must be in YYYY-MM-DD format'}, 400
+
+            ''' Key code block: Commit changes to the database '''
+            user.update()
+            # success returns json of user
+
+            #
+            if user:
+                return jsonify(user.read())
+            # failure returns error
+            return {'message': 'Cannot update'}, 400
+        
+        @token_required
+        def get(self, current_user): # Read Method
+            users = User.query.all()    # read/extract all users from database
+            json_ready = [user.read() for user in users]  # prepare output in json
+            return jsonify(json_ready)  # jsonify creates Flask response object, more specific to APIs than json.dumps
     
     class _Security(Resource):
         def post(self):
@@ -100,9 +142,15 @@ class UserAPI:
                     return {'message': f"Invalid user id or password"}, 400
                 if user:
                     try:
+
+                        token_payload = {
+                            "_uid": user._uid,
+                            "role": user.role,  # Add the role information to the token
+                            "id": user.id
+                        }
+
                         token = jwt.encode(
-                            {"_uid": user._uid,
-                            "_isrole": user._role},
+                            token_payload,
                             current_app.config["SECRET_KEY"],
                             algorithm="HS256"
                         )
@@ -110,7 +158,7 @@ class UserAPI:
                         resp.set_cookie("jwt", token,
                                 max_age=3600,
                                 secure=True,
-                                httponly=True,
+                                httponly=False,
                                 path='/',
                                 samesite='None'  # This is the key part for cross-site requests
 
@@ -133,8 +181,12 @@ class UserAPI:
                         "error": str(e),
                         "data": None
                 }, 500
+            
+        
 
             
     # building RESTapi endpoint
     api.add_resource(_CRUD, '/')
     api.add_resource(_Security, '/authenticate')
+    api.add_resource(AllUsersAPI, '/all')
+    
