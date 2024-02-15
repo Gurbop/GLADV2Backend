@@ -33,6 +33,9 @@ app.register_blueprint(player_api)
 app.register_blueprint(app_projects)  # register app pages
 app.register_blueprint(cards_api)
 
+initCards()
+initUsers()
+
 @app.errorhandler(404)  # catch for URL not found
 def page_not_found(e):
     # note that we set the 404 status explicitly
@@ -48,10 +51,10 @@ def index():
 def table():
     return render_template("table.html")
 
-@app.before_first_request
+'''@app.before_first_request
 def activate_job():  # activate these items 
     initCards()
-    initUsers()
+    initUsers()'''
 
 '''
 @app.before_request
