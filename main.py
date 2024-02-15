@@ -1,42 +1,4 @@
 # import threading
-<<<<<<< HEAD
-
-# import "packages" from flask
-# import render_template from "public" flask libraries
-from flask import render_template, request
-from flask.cli import AppGroup
-
-     
-# import "packages" from "this" project
-# from __init__ import app, db, cors  # Definitions initializatio
-from __init__ import app, db, cors
-
-
-# setup APIs
-from api.user import user_api  # Blueprint import api definition
-from api.clashRoyal import cards_api
-from api.player import player_api
-# database migrations
-from model.users import initUsers
-from model.players import initPlayers
-from model.clashroyal import initCards
-
-# setup App pages
-# Blueprint directory import projects definition
-from projects.projects import app_projects
-
-# Initialize the SQLAlchemy object to work with the Flask app instance
-db.init_app(app)
-
-# register URIs
-app.register_blueprint(user_api)  # register api routes
-app.register_blueprint(player_api)
-app.register_blueprint(app_projects)  # register app pages
-app.register_blueprint(cards_api)
-
-initCards()
-initUsers()
-=======
 
 # import "packages" from flask
 # import render_template from "public" flask libraries
@@ -66,13 +28,11 @@ from projects.projects import app_projects
 db.init_app(app)
 initCards()
 initUsers()
-
 # register URIs
 app.register_blueprint(user_api)  # register api routes
 app.register_blueprint(player_api)
 app.register_blueprint(app_projects)  # register app pages
 app.register_blueprint(cards_api)
->>>>>>> bfc3e01 (tewst)
 
 @app.errorhandler(404)  # catch for URL not found
 def page_not_found(e):
@@ -88,19 +48,10 @@ def index():
 @app.route('/table/')  # connects /stub/ URL to stub() function
 def table():
     return render_template("table.html")
-
-<<<<<<< HEAD
-'''@app.before_first_request
+'''
+@app.before_first_request
 def activate_job():  # activate these items 
-    initCards()
-    initUsers()'''
-=======
-"""@app.before_first_request
-def activate_job():  # activate these items 
-    initCards()
-    initUsers()"""
->>>>>>> bfc3e01 (tewst)
-
+'''
 '''
 @app.before_request
 def before_request():
