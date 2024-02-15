@@ -3,7 +3,7 @@ from random import randrange
 from datetime import date
 import os, base64
 import json
-from .clashroyal import ClashRoyaleCard, Collection
+from .clashroyal import ClashRoyaleCard, Collection, Favorite
 from __init__ import app, db
 from sqlalchemy.exc import IntegrityError
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -80,6 +80,7 @@ class User(db.Model):
     _dob = db.Column(db.Date)
     _role = db.Column(db.String(20), default="User", nullable=False)
     collections = db.relationship('Collection', backref='Account', uselist=True, lazy='dynamic')
+    favorites = db.relationship('Favorite', backref='Account', uselist=True, lazy='dynamic')
     
     # Defines a relationship between User record and Notes table, one-to-many (one user to many notes)
     posts = db.relationship("Post", cascade='all, delete', backref='users', lazy=True)

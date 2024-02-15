@@ -19,6 +19,7 @@ class ClashRoyaleCard(db.Model, UserMixin):
     rarity = db.Column(db.String(64), nullable=True)
 
     collections = relationship("Collection", back_populates="card")
+    favorites = relationship("Favorite", back_populates="card")
 
     def __init__(self, name, max_level, max_evolution_level, elixir_cost, icon_url_medium, icon_url_evolution_medium, rarity):
         self.name = name
@@ -63,6 +64,21 @@ class Collection(db.Model):
     def __init__(self, user_id, card_id):
         self.user_id = user_id
         self.card_id = card_id
+
+class Favorite(db.Model):
+    __tablename__ = 'favorites'
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    card_id = db.Column(db.Integer, db.ForeignKey('clash_royale_cards.id'))
+
+    user = relationship("User", back_populates="favorites")
+    card = relationship("ClashRoyaleCard", back_populates="favorites")
+
+    def __init__(self, user_id, card_id):
+        self.user_id = user_id
+        self.card_id = card_id
+
 
 def initCards():
     with app.app_context():

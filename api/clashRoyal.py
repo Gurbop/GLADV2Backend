@@ -3,7 +3,7 @@ from flask_restful import Api, request, Resource # used for REST API building
 import requests  # used for testing
 import random
 from __init__ import app, db
-from model.clashroyal import ClashRoyaleCard, Collection
+from model.clashroyal import ClashRoyaleCard, Collection, Favorite
 from model.users import User
 import os
 from cryptography.fernet import Fernet
@@ -47,8 +47,22 @@ class Card:
             cards_id = set([collection.card_id for collection in db.session.query(Collection).filter(Collection.user_id == request.args.get("id")).all()])
             cards = [db.session.query(ClashRoyaleCard).filter(ClashRoyaleCard.id == card).first() for card in cards_id]
             return jsonify([card.fewDetails() for card in cards])
-
+    
+    class _addFavorite(Resource):
+        def post(self):
+            favorite = Favorite(user_id=request.args.get("id"), card_id=request.args.get("card_id"))
+            db.session.add(favorite)
+            db.session.commit()
+    
+    class _favorites(Resource):
+        def get(self):
+            cards_id = set([collection.card_id for collection in db.session.query(Favorite).filter(Favorite.user_id == request.args.get("id")).limit(8).all()])
+            cards = [db.session.query(ClashRoyaleCard).filter(ClashRoyaleCard.id == card).first() for card in cards_id]
+            return jsonify([card.fewDetails() for card in cards])
+        
     api.add_resource(_CardList, "/cards")
     api.add_resource(_commonChest, "/commonChest")
     api.add_resource(_legendaryChest, "/legendaryChest")
     api.add_resource(_getCollection, "/getCollection")
+    api.add_resource(_addFavorite, "/addtofavorites")
+    api.add_resource(_favorites, "/favorites")
