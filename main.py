@@ -94,63 +94,7 @@ def generate_data():
 
 # Register the custom command group with the Flask application
 app.cli.add_command(custom_cli)
-# this runs the application on the development server
-from flask import Flask, jsonify
-from flask_cors import CORS
-import requests
-app = Flask(__name__)
-CORS(app)  # Enable CORS for all routes and origins
-API_KEY = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiIsImtpZCI6IjI4YTMxOGY3LTAwMDAtYTFlYi03ZmExLTJjNzQzM2M2Y2NhNSJ9.eyJpc3MiOiJzdXBlcmNlbGwiLCJhdWQiOiJzdXBlcmNlbGw6Z2FtZWFwaSIsImp0aSI6ImJjOWNhYTM0LTQ0MzUtNDc4ZC04MDViLTFkMGJmYTFjMWQ0NSIsImlhdCI6MTcwNzg4MDIxMiwic3ViIjoiZGV2ZWxvcGVyL2RkMDFmNzBiLTgzNGEtNzYyOC05ZGU3LWMxNWZjOWMxMGIxZCIsInNjb3BlcyI6WyJyb3lhbGUiXSwibGltaXRzIjpbeyJ0aWVyIjoiZGV2ZWxvcGVyL3NpbHZlciIsInR5cGUiOiJ0aHJvdHRsaW5nIn0seyJjaWRycyI6WyI0NC4yMzYuMTE2LjkzIl0sInR5cGUiOiJjbGllbnQifV19.T_P7gbpb8ZKsGUj2_1FmZx-2h7nEtn4rkfyxhse_Ky28lSVNpo2I9ohZ_lGDBU9q-AHfKA6J-JGIKafamHgYyg"
-# API_KEY = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiIsImtpZCI6IjI4YTMxOGY3LTAwMDAtYTFlYi03ZmExLTJjNzQzM2M2Y2NhNSJ9.eyJpc3MiOiJzdXBlcmNlbGwiLCJhdWQiOiJzdXBlcmNlbGw6Z2FtZWFwaSIsImp0aSI6IjVlODJjNmViLTYwMmMtNGVlMy04YTAyLTEzODViMzdiY2Y2NCIsImlhdCI6MTcwODA2MDQzNywic3ViIjoiZGV2ZWxvcGVyLzRjNzAwZDc4LWQzNjUtYTZlYS1jMjNiLTlhYjY5M2JiNzA1OSIsInNjb3BlcyI6WyJyb3lhbGUiXSwibGltaXRzIjpbeyJ0aWVyIjoiZGV2ZWxvcGVyL3NpbHZlciIsInR5cGUiOiJ0aHJvdHRsaW5nIn0seyJjaWRycyI6WyIxMDQuMzUuMjcuNzYiLCIwLjAuMC4wIl0sInR5cGUiOiJjbGllbnQifV19.1jtGW1R8VwviHEcymktxn7AEKC-kQTpWJdCgOh_2mfbz792-PXrVH4BmN76Tm_v5YMBal43iAZsX4p1vjbOijg"
-API_BASE_URL = 'https://api.clashroyale.com/v1'
-@app.route('/')
-def home():
-    return "Clash Royale Dashboard Backend"
-@app.route('/challenges')
-def fetch_challenges():
-    url = f"https://api.clashroyale.com/v1/challenges"
-    headers = {'Authorization': f'Bearer {API_KEY}'}
-    response = requests.get(url, headers=headers)
-    if response.ok:
-        data = response.json()
-        challenges_list = []
-        for item in data:
-            challenges_list.extend(item.get('challenges', []))
-        return jsonify(challenges_list)
-    else:
-        return jsonify({"error": "Failed to fetch data"}), response.status_code
-@app.route('/tournaments')
-def get_tournaments():
-    tournament_name = request.args.get('name', 'ydkv')  # Default value 'ydkv' if name parameter not provided
-    url = f'https://api.clashroyale.com/v1/tournaments?name={tournament_name}'
-    headers = {'Authorization': f'Bearer {API_KEY}'}
-    response = requests.get(url, headers=headers)
-    if response.ok:
-        return jsonify(response.json().get('items', []))  # Send back a list of items
-    else:
-        return jsonify({"error": "Failed to fetch data"}), response.status_code
 
-@app.route('/players')
-def get_players():
-    player_name = request.args.get('name', 'LLUU0LVC')  # Default value 'ydkv' if name parameter not provided
-    url = f'https://api.clashroyale.com/v1/players?name={player_name}'
-    headers = {'Authorization': f'Bearer {API_KEY}'}
-    response = requests.get(url, headers=headers)
-    if response.ok:
-        return jsonify(response.json().get('items', []))  # Send back a list of items
-    else:
-        return jsonify({"error": "Failed to fetch data"}), response.status_code
-@app.route('/leaderboard')
-def get_leaderboard():
-    season = request.args.get('season', '1')  # Default to season 1 if not specified
-    url = f'https://api.clashroyale.com/v1/locations/global/seasons/{season}/rankings/players?limit=10'
-    headers = {'Authorization': f'Bearer {API_KEY}'}
-    response = requests.get(url, headers=headers)
-    if response.ok:
-        return jsonify(response.json().get('items', []))  # Send back a list of items
-    else:
-        return jsonify({"error": "Failed to fetch data"}), response.status_code
-      
 # this runs the application on the development server
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0", port="8086")
