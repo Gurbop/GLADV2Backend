@@ -97,10 +97,11 @@ app.cli.add_command(custom_cli)
 from flask import Flask, jsonify
 from flask_cors import CORS
 import requests
-app = Flask(__name__)
-CORS(app)  # Enable CORS for all routes and origins
-API_KEY = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiIsImtpZCI6IjI4YTMxOGY3LTAwMDAtYTFlYi03ZmExLTJjNzQzM2M2Y2NhNSJ9.eyJpc3MiOiJzdXBlcmNlbGwiLCJhdWQiOiJzdXBlcmNlbGw6Z2FtZWFwaSIsImp0aSI6IjljMTc4MDFlLWJlZmItNDc2OS1iYmI2LTg0MWExNWFjNzg1MSIsImlhdCI6MTcwOTA1ODY5Niwic3ViIjoiZGV2ZWxvcGVyL2RkMDFmNzBiLTgzNGEtNzYyOC05ZGU3LWMxNWZjOWMxMGIxZCIsInNjb3BlcyI6WyJyb3lhbGUiXSwibGltaXRzIjpbeyJ0aWVyIjoiZGV2ZWxvcGVyL3NpbHZlciIsInR5cGUiOiJ0aHJvdHRsaW5nIn0seyJjaWRycyI6WyI0NC4yMzYuMTE2LjkzIiwiNTQuMTcyLjU4Ljk5IiwiMjA5LjY2LjIwNS4xOTciXSwidHlwZSI6ImNsaWVudCJ9XX0.Y-MOX_SjCpWDcmITsSImYsxbsFb05rbpH9kP2762kkSb0kiEw_ucmvVtFrPPkXx1j4yAveb5XKSM7qyTuZwK3g"
-# API_KEY = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiIsImtpZCI6IjI4YTMxOGY3LTAwMDAtYTFlYi03ZmExLTJjNzQzM2M2Y2NhNSJ9.eyJpc3MiOiJzdXBlcmNlbGwiLCJhdWQiOiJzdXBlcmNlbGw6Z2FtZWFwaSIsImp0aSI6IjVlODJjNmViLTYwMmMtNGVlMy04YTAyLTEzODViMzdiY2Y2NCIsImlhdCI6MTcwODA2MDQzNywic3ViIjoiZGV2ZWxvcGVyLzRjNzAwZDc4LWQzNjUtYTZlYS1jMjNiLTlhYjY5M2JiNzA1OSIsInNjb3BlcyI6WyJyb3lhbGUiXSwibGltaXRzIjpbeyJ0aWVyIjoiZGV2ZWxvcGVyL3NpbHZlciIsInR5cGUiOiJ0aHJvdHRsaW5nIn0seyJjaWRycyI6WyIxMDQuMzUuMjcuNzYiLCIwLjAuMC4wIl0sInR5cGUiOiJjbGllbnQifV19.1jtGW1R8VwviHEcymktxn7AEKC-kQTpWJdCgOh_2mfbz792-PXrVH4BmN76Tm_v5YMBal43iAZsX4p1vjbOijg"
+#app = Flask(__name__)
+#CORS(app, resources={r"/api/*": {"origins": ["http://localhost:4100", "http://127.0.0.1:4100", "http://localhost:8086"]}})
+ # Enable CORS for all routes and origins
+# API_KEY = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiIsImtpZCI6IjI4YTMxOGY3LTAwMDAtYTFlYi03ZmExLTJjNzQzM2M2Y2NhNSJ9.eyJpc3MiOiJzdXBlcmNlbGwiLCJhdWQiOiJzdXBlcmNlbGw6Z2FtZWFwaSIsImp0aSI6IjljMTc4MDFlLWJlZmItNDc2OS1iYmI2LTg0MWExNWFjNzg1MSIsImlhdCI6MTcwOTA1ODY5Niwic3ViIjoiZGV2ZWxvcGVyL2RkMDFmNzBiLTgzNGEtNzYyOC05ZGU3LWMxNWZjOWMxMGIxZCIsInNjb3BlcyI6WyJyb3lhbGUiXSwibGltaXRzIjpbeyJ0aWVyIjoiZGV2ZWxvcGVyL3NpbHZlciIsInR5cGUiOiJ0aHJvdHRsaW5nIn0seyJjaWRycyI6WyI0NC4yMzYuMTE2LjkzIiwiNTQuMTcyLjU4Ljk5IiwiMjA5LjY2LjIwNS4xOTciXSwidHlwZSI6ImNsaWVudCJ9XX0.Y-MOX_SjCpWDcmITsSImYsxbsFb05rbpH9kP2762kkSb0kiEw_ucmvVtFrPPkXx1j4yAveb5XKSM7qyTuZwK3g"
+API_KEY = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiIsImtpZCI6IjI4YTMxOGY3LTAwMDAtYTFlYi03ZmExLTJjNzQzM2M2Y2NhNSJ9.eyJpc3MiOiJzdXBlcmNlbGwiLCJhdWQiOiJzdXBlcmNlbGw6Z2FtZWFwaSIsImp0aSI6Ijk3YThhYTE2LWZmODItNDBmMy04YTUzLTA5MjQ0OGEzNDc3YSIsImlhdCI6MTcwODI4OTA2MCwic3ViIjoiZGV2ZWxvcGVyLzRjNzAwZDc4LWQzNjUtYTZlYS1jMjNiLTlhYjY5M2JiNzA1OSIsInNjb3BlcyI6WyJyb3lhbGUiXSwibGltaXRzIjpbeyJ0aWVyIjoiZGV2ZWxvcGVyL3NpbHZlciIsInR5cGUiOiJ0aHJvdHRsaW5nIn0seyJjaWRycyI6WyIxMDQuMzUuMjcuNzYiLCIxNzQuMTk0LjE5My4zOSIsIjAuMC4wLjAiXSwidHlwZSI6ImNsaWVudCJ9XX0.khYHScWs-42vTc6UPPihC8PS3T005MmWV42HLlyxbUrcbXqNRdkAtlyAZNnw5C8AFPkmHSyCBnscEr342Z3qxA"
 API_BASE_URL = 'https://api.clashroyale.com/v1'
 @app.route('/')
 def home():
@@ -139,6 +140,7 @@ def get_players():
         return jsonify(response.json().get('items', []))  # Send back a list of items
     else:
         return jsonify({"error": "Failed to fetch data"}), response.status_code
+    
 @app.route('/leaderboard')
 def get_leaderboard():
     season = request.args.get('season', '1')  # Default to season 1 if not specified
@@ -153,3 +155,4 @@ def get_leaderboard():
 # this runs the application on the development server
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0", port="8086")
+
