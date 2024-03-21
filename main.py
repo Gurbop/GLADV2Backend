@@ -20,7 +20,6 @@ from api.titanic import titanic_api
 from model.users import initUsers
 from model.players import initPlayers
 from model.clashroyal import initCards
-from model.titanics import initTitanic
 
 
 # setup App pages
@@ -95,8 +94,6 @@ def generate_data():
     initUsers()
     initCards()
     initPlayers()
-    initTitanic()
-
 
 # Register the custom command group with the Flask application
 app.cli.add_command(custom_cli)
