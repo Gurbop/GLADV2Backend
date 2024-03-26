@@ -17,6 +17,7 @@ from api.clashRoyal import cards_api
 from api.player import player_api
 from api.titanic import titanic_api
 from api.diamonds import diamonds_api
+from api.NBA import NBA_api
 # database migrations
 from model.users import initUsers
 from model.players import initPlayers
@@ -39,6 +40,7 @@ app.register_blueprint(app_projects)  # register app pages
 app.register_blueprint(cards_api)
 app.register_blueprint(titanic_api)
 app.register_blueprint(diamonds_api)
+app.register_blueprint(NBA_api)
 
 
 @app.errorhandler(404)  # catch for URL not found
