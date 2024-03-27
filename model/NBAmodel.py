@@ -3,8 +3,6 @@ from sklearn.tree import DecisionTreeRegressor
 from sklearn.linear_model import LinearRegression
 
 class BasketBallScoreModel:
-    """A class used to represent the Basketball Score Prediction Model.
-    """
     _instance = None
     
     def __init__(self):
