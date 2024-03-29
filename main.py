@@ -19,6 +19,7 @@ from api.titanic import titanic_api
 from api.diamonds import diamonds_api
 from api.NBA import NBA_api
 from api.Soccer import soccer_api
+from api.Lacrosse import Lacrosse_api
 # database migrations
 from model.users import initUsers
 from model.players import initPlayers
@@ -43,7 +44,7 @@ app.register_blueprint(titanic_api)
 app.register_blueprint(diamonds_api)
 app.register_blueprint(NBA_api)
 app.register_blueprint(soccer_api)
-
+app.register_blueprint(Lacrosse_api)
 
 @app.errorhandler(404)  # catch for URL not found
 def page_not_found(e):
