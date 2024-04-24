@@ -14,6 +14,9 @@ cards_api = Blueprint('house', __name__, url_prefix='/api/card')
 
 api = Api(cards_api)
 
+dict1 = {'Card':'Knight', 'Rarity':'Common', 'Elixir':'3'}
+dict2 = {'Card':'Hog Rider', 'Rarity':"Rare", 'Elixir':'4'}
+
 class Card:
 
     class _CardList(Resource):

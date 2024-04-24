@@ -215,7 +215,7 @@ class User(db.Model):
 
 # Builds working data for testing
 def initUsers():
-    print("Sup Niggers")
+    print("Clash Royale Fix")
     with app.app_context():
         """Create database and tables"""
         db.create_all()
