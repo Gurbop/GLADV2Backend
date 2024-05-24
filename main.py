@@ -26,6 +26,7 @@ from api.decks import decks_api
 from model.users import initUsers
 from model.players import initPlayers
 from model.clashroyal import initCards
+from model.Books import init_books
 
 
 # setup App pages
@@ -36,6 +37,7 @@ from projects.projects import app_projects
 db.init_app(app)
 initCards()
 initUsers()
+init_books()
 
 # register URIs
 app.register_blueprint(user_api)  # register api routes
@@ -105,6 +107,7 @@ def generate_data():
     initUsers()
     initCards()
     initPlayers()
+    init_books()
 
 
 # Register the custom command group with the Flask application
