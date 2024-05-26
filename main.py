@@ -21,6 +21,7 @@ from api.NBA import NBA_api
 from api.Soccer import soccer_api
 from api.Lacrosse import Lacrosse_api
 from api.decks import decks_api
+from api.book import books_api
 
 # database migrations
 from model.users import initUsers
@@ -50,6 +51,7 @@ app.register_blueprint(NBA_api)
 app.register_blueprint(soccer_api)
 app.register_blueprint(Lacrosse_api)
 app.register_blueprint(decks_api)
+app.register_blueprint(books_api)
 
 
 @app.errorhandler(404)  # catch for URL not found
