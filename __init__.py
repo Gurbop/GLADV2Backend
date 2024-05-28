@@ -15,7 +15,7 @@ These object can be used throughout project.
 app = Flask(__name__)
 cors = CORS(app, 
     resources={r"/api/*": {"origins": ["http://localhost:4100", "http://127.0.0.1:4100", 
-                                   "http://localhost:8086"]}},
+                                   "http://localhost:8050"]}},
     supports_credentials=True, 
     methods=["GET", "POST", "PUT", "DELETE"])
 

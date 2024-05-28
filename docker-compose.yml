@@ -6,7 +6,7 @@ services:
                         - CRYPTO_KEY=${CRYPTO_KEY}
                 build: .
                 ports:
-                        - "8086:8086"
+                        - "8050:8050"
                 volumes:
                         - ./volumes:/volumes
                         - ./instance:/instance
